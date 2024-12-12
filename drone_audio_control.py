@@ -1,6 +1,5 @@
 import sounddevice as sd
 import soundfile as sf
-import tomllib
 import numpy as np
 import csv
 import os
@@ -8,10 +7,10 @@ import motor_control.motor_control as motor_control
 from quickset_pan_tilt import controller, protocol
 
 # Configuration
-THROTTLE_VALUES = [10, 50, 100]  # Percent throttle
-ANGLES = [0, 30, 60, 90]  # Degrees
+THROTTLE_VALUES = [10, 20, 30]  # Percent throttle
+ANGLES = [0, 30]  # Degrees
 RECORDINGS_PER_SETTING = 10  # Number of recordings per setting
-DURATION = 1  # Duration of each recording in seconds
+DURATION = 1 # Duration of each recording in seconds
 SAMPLE_RATE = 44100  # Audio sample rate in Hz
 OUTPUT_DIR = "recordings"  # Directory to save recordings and metadata
 
@@ -25,6 +24,8 @@ def setup_pan_tilt_controller(port):
     # Make sure the pan-tilt mount is at (0,0) before starting; this
     # isn't very important, but we might as well start at a known location.
     pan_tilt.home()
+
+    return pan_tilt
 
 # Initialize drone controller
 def setup_drone_controller(port):
@@ -45,7 +46,7 @@ def set_tilt_angle(pan_tilt, angle):
 # Function to record audiocon
 def record_audio(duration, sample_rate):
     print(f"Recording for {duration} seconds...")
-    return sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float64')
+    return sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float64', device=4)
 
 # Function to save metadata
 def save_metadata(metadata):
@@ -60,7 +61,7 @@ def save_metadata(metadata):
             writer.writeheader()
         writer.writerows(metadata)
 
-def main(serial_port_config):
+def main():
 
     print("--------------------------------------------")
     print("Setting up pan tilt mount:")
@@ -120,7 +121,7 @@ def main(serial_port_config):
                     
                     # Save audio data
                     try:
-                        sd.write(file_path, audio_data, SAMPLE_RATE)
+                        sf.write(file_path, audio_data, SAMPLE_RATE)
                     except Exception as e:
                         print(f"Failed to save recording {file_name}: {e}")
                         continue
@@ -150,5 +151,7 @@ def main(serial_port_config):
     finally:
         # Turn off motors and disconnect
         motor_control.set_throttle([0, 0, 0, 0])
-        motor_control.board.disconnect()
         print("Motors turned off and flight controller disconnected.")
+
+if __name__ == "__main__":
+    main()
