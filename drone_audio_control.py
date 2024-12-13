@@ -7,12 +7,13 @@ import motor_control.motor_control as motor_control
 from quickset_pan_tilt import controller, protocol
 
 # Configuration
-THROTTLE_VALUES = [10, 20, 30]  # Percent throttle
-ANGLES = [0, 30]  # Degrees
+THROTTLE_VALUES = [10, 50, 100]  # Percent throttle
+ANGLES = [0, 30, 60, 90]  # Degrees
 RECORDINGS_PER_SETTING = 10  # Number of recordings per setting
 DURATION = 1 # Duration of each recording in seconds
 SAMPLE_RATE = 44100  # Audio sample rate in Hz
 OUTPUT_DIR = "recordings"  # Directory to save recordings and metadata
+propeller_type = "black plastic"
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -43,7 +44,7 @@ def set_tilt_angle(pan_tilt, angle):
 
     pan_tilt.move_absolute(0, angle)
 
-# Function to record audiocon
+# Function to record audio
 def record_audio(duration, sample_rate):
     print(f"Recording for {duration} seconds...")
     return sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float64', device=4)
@@ -51,7 +52,7 @@ def record_audio(duration, sample_rate):
 # Function to save metadata
 def save_metadata(metadata):
     metadata_file = os.path.join(OUTPUT_DIR, "metadata.csv")
-    fieldnames = ['file_name', 'angle', 'throttle', 'recording_number', 'duration', 'sample_rate']
+    fieldnames = ['file_name', 'angle', 'throttle', 'recording_number', 'duration', 'sample_rate','propeller_type']
 
     # Append to the file if it exists, else create a new one with header
     file_exists = os.path.isfile(metadata_file)
@@ -134,6 +135,7 @@ def main():
                         "recording_number": i + 1,
                         "duration": DURATION,
                         "sample_rate": SAMPLE_RATE,
+                        "propeller_type": propeller_type,
                     }
                     metadata.append(metadata_entry)
                     
@@ -151,7 +153,7 @@ def main():
     finally:
         # Turn off motors and disconnect
         motor_control.set_throttle([0, 0, 0, 0])
-        print("Motors turned off and flight controller disconnected.")
+        print("Motors turned off.")
 
 if __name__ == "__main__":
     main()
