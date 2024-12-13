@@ -103,6 +103,7 @@ def main():
                 print(f"Setting throttle to {throttle}%...")
                 motor_control.set_throttle([throttle, throttle, throttle, throttle])  # Uniform throttle for all motors
                 motor_control.throw_out_old_telemetry()
+                # Saves motor RPM data from a single instance, consider using an averaging scheme
                 rpm_metadata = motor_control.get_rpm_telemetry()
 
                 for i in range(RECORDINGS_PER_SETTING):
