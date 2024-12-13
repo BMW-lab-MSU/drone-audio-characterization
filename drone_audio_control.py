@@ -52,7 +52,7 @@ def record_audio(duration, sample_rate):
 # Function to save metadata
 def save_metadata(metadata):
     metadata_file = os.path.join(OUTPUT_DIR, "metadata.csv")
-    fieldnames = ['file_name', 'angle', 'throttle', 'recording_number', 'duration', 'sample_rate','propeller_type']
+    fieldnames = ['file_name', 'angle', 'throttle', 'recording_number', 'duration', 'sample_rate','propeller_type', 'motor_1_rpm', 'motor_2_rpm', 'motor_3_rpm', 'motor_4_rpm']
 
     # Append to the file if it exists, else create a new one with header
     file_exists = os.path.isfile(metadata_file)
@@ -103,6 +103,7 @@ def main():
                 print(f"Setting throttle to {throttle}%...")
                 motor_control.set_throttle([throttle, throttle, throttle, throttle])  # Uniform throttle for all motors
                 motor_control.throw_out_old_telemetry()
+                rpm_metadata = motor_control.get_rpm_telemetry()
 
                 for i in range(RECORDINGS_PER_SETTING):
                     # Check if this recording number has already been done
@@ -136,6 +137,10 @@ def main():
                         "duration": DURATION,
                         "sample_rate": SAMPLE_RATE,
                         "propeller_type": propeller_type,
+                        "motor_1_rpm": rpm_metadata[0],
+                        "motor_2_rpm": rpm_metadata[1],
+                        "motor_3_rpm": rpm_metadata[2],
+                        "motor_4_rpm": rpm_metadata[3]
                     }
                     metadata.append(metadata_entry)
                     
