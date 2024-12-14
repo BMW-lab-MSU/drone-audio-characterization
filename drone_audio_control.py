@@ -7,14 +7,14 @@ import motor_control.motor_control as motor_control
 from quickset_pan_tilt import controller, protocol
 
 # Configuration
-THROTTLE_VALUES = [10, 50, 100]  # Percent throttle
+THROTTLE_VALUES = [10, 50, 80]  # Percent throttle
 ANGLES = [0, 30, 60, 90]  # Degrees
 PAN_ANGLES = [-90, -45, 0, 45, 90]
 RECORDINGS_PER_SETTING = 10  # Number of recordings per setting
 DURATION = 1 # Duration of each recording in seconds
 SAMPLE_RATE = 44100  # Audio sample rate in Hz
 OUTPUT_DIR = "recordings"  # Directory to save recordings and metadata
-propeller_type = "black plastic"
+propeller_type = "quad black plastic"
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -48,7 +48,7 @@ def set_tilt_angle(pan_tilt, angle, pan_angle):
 # Function to record audio
 def record_audio(duration, sample_rate):
     print(f"Recording for {duration} seconds...")
-    return sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float64', device=4)
+    return sd.rec(int(duration * sample_rate), samplerate=sample_rate, channels=1, dtype='float64', device=4, blocking=True)
 
 # Function to save metadata
 def save_metadata(metadata):
@@ -57,10 +57,9 @@ def save_metadata(metadata):
 
     # Append to the file if it exists, else create a new one with header
     file_exists = os.path.isfile(metadata_file)
-    with open(metadata_file, 'a', newline='') as csvfile:
+    with open(metadata_file, 'w', newline='') as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        if not file_exists:
-            writer.writeheader()
+        writer.writeheader()
         writer.writerows(metadata)
 
 def main():
@@ -85,24 +84,21 @@ def main():
         for pan_angle in PAN_ANGLES:
             # Check if we've already done this pan angle and resume if necessary
             pan_angle_metadata = [item for item in metadata if item['pan_angle'] == str(pan_angle)]
-            if pan_angle_metadata:
-                    print(f"Resuming from pan angle {pan_angle}...")
-                    continue  # Skip to the next pan angle if it's already done
+
             for angle in ANGLES:
                 # Check if we've already done this angle and resume if necessary
-                angle_metadata = [item for item in metadata if item['angle'] == str(angle)]
+                angle_metadata = [item for item in metadata if item['angle'] == str(angle) and item['pan_angle'] == str(pan_angle) and item['propeller_type'] == str(propeller_type)]
                 if angle_metadata:
                     print(f"Resuming from angle {angle}...")
                     continue  # Skip to the next angle if it's already done
-                
+
                 print(f"Setting up for angle {angle} degrees...")
                 # Assume some physical adjustment happens here for the angle
                 set_tilt_angle(pan_tilt,angle,pan_angle)
-                input("Move the drone to the next position (press Enter when ready)...")  # Prompt user to move the drone
 
                 for throttle in THROTTLE_VALUES:
                     # Check if we've already done this throttle for the current angle and resume if necessary
-                    throttle_metadata = [item for item in metadata if item['throttle'] == str(throttle) and item['angle'] == str(angle) and item['pan_angle'] == str(pan_angle)]
+                    throttle_metadata = [item for item in metadata if item['throttle'] == str(throttle) and item['angle'] == str(angle) and item['pan_angle'] == str(pan_angle) and item['propeller_type'] == str(propeller_type)]
                     if throttle_metadata:
                         print(f"Resuming from throttle {throttle}%...")
                         continue  # Skip to the next throttle if it's already done
@@ -123,7 +119,6 @@ def main():
                         print(f"Recording {i+1}/{RECORDINGS_PER_SETTING} for throttle {throttle}% at angle {angle} degrees...")
                         # Record audio
                         audio_data = record_audio(DURATION, SAMPLE_RATE)
-                        sd.wait()  # Wait until recording is finished
                         
                         # File naming
                         file_name = f"angle_{angle}_pan_angle{pan_angle}_throttle_{throttle}_propeller_type_{propeller_type}_recording_{i+1}.wav"
@@ -146,23 +141,25 @@ def main():
                             "duration": DURATION,
                             "sample_rate": SAMPLE_RATE,
                             "propeller_type": propeller_type,
-                            "motor_1_rpm": rpm_metadata[0],
-                            "motor_2_rpm": rpm_metadata[1],
-                            "motor_3_rpm": rpm_metadata[2],
-                            "motor_4_rpm": rpm_metadata[3]
+                            "motor_1_rpm": rpm_metadata[0] if not None else 0,
+                            "motor_2_rpm": rpm_metadata[1] if not None else 0,
+                            "motor_3_rpm": rpm_metadata[2] if not None else 0,
+                            "motor_4_rpm": rpm_metadata[3] if not None else 0
                         }
                         metadata.append(metadata_entry)
-                        
-                    # Prompt user to move the drone to the next throttle setting before recording the next set
-                    input("Move the drone to the next throttle setting (press Enter when ready)...")
 
                 # Save data after each angle setup to avoid losing progress
                 save_metadata(metadata)
                 print(f"Data for angle {angle} degrees saved.")
 
+
             # Save metadata after completing all setups
             save_metadata(metadata)
             print("Audio recordings and metadata saved successfully!")
+
+            # Set throttle to 0 for every pan_angle
+            motor_control.set_throttle([0,0,0,0])
+            input("Move the drone to the next position (press Enter when ready)...")  # Prompt user to move the drone
 
     finally:
         # Turn off motors and disconnect
