@@ -10,15 +10,21 @@ from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense """
 
 # Loop through all `.wav` files in the directory
 def loadWav(data_dir, tArray):
-    for filename in os.listdir(data_dir):
-        if filename.endswith('.wav'):
-            file_path = os.path.join(data_dir, filename)
-            
-            # Load audio file using librosa
-            audio, sampling_rate = librosa.load(file_path, sr=None)  # sr=None preserves original sampling rate
-            
-            # Append audio data and sampling rate
-            tArray.append((audio))
+    # Get all .wav files and sort by modification time (oldest first)
+    wav_files = sorted(
+        [f for f in os.listdir(data_dir) if f.endswith('.wav')],
+        key=lambda f: os.path.getmtime(os.path.join(data_dir, f))
+    )
+
+    for filename in wav_files:
+        file_path = os.path.join(data_dir, filename)
+
+        # Load audio file while preserving original sampling rate
+        audio, sampling_rate = librosa.load(file_path, sr=None)
+
+        # Append audio data
+        tArray.append(audio)
+
     return tArray
 
 # Load all '.wav' files in the Blackmore directory (all audio recordings are recorded at 44100 Hz)
