@@ -11,7 +11,7 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 # Define models
 models = {
     "RandomForest": RandomForestClassifier(random_state=11),
-    "SVM": SVC(random_state=11),
+    "SVM": SVC(kernel="rbf",random_state=11),
     "LogisticRegression": LogisticRegression(random_state=11, max_iter=1000),
     "KNN": KNeighborsClassifier(n_neighbors=5),
     "GradientBoosting": GradientBoostingClassifier(random_state=11),
@@ -19,7 +19,7 @@ models = {
 }
 
 # Path where the folds are stored
-folds_path = r"B:\drone-audio\2024-12-14\splits_manual_50ms"
+folds_path = r"/home/c56r747/drone_audio_characterization/splits_manual_50ms"
 
 # Metrics storage
 metrics_list = []
